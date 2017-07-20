@@ -29,12 +29,15 @@ var check_reqs = require('./check_reqs');
  * run
  *   Creates a zip file int platform/build folder
  */
-module.exports.run = function () {
+module.exports.run = function (args) {
 
+    var contextPath = args.contextPath || null;
     var resultP = check_reqs.run();
+    /*
     resultP.then(function () {
-        return clean.run();
+        return clean.run(); // why?
     });
+    */
     resultP.then(function () {
         var wwwPath = path.join(__dirname, '../../www');
 
@@ -48,6 +51,10 @@ module.exports.run = function () {
         }).map(function (elem) {
             return elem.substr(pathLength);
         });
+
+        if (contextPath) {
+            cleanedFileList = cleanedFileList.map(path => contextPath + path);
+        }
 
         var swJSPath = path.join(wwwPath, 'cordova-sw.js');
         var swJS = fs.readFileSync(swJSPath, 'utf8');

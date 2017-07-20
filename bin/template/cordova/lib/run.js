@@ -24,13 +24,19 @@ var path = require('path');
 var url = require('url');
 var cordovaServe = require('cordova-serve');
 
+var server = cordovaServe();
+
+// export the server so that hooks can be used to attach behaviour
+module.exports.server = server; 
+
 module.exports.run = function (args) {
     // defaults
     args.port = args.port || 8000;
     args.target = args.target || 'chrome'; // make default the system browser
-
+    
     var wwwPath = path.join(__dirname, '../../www');
     var manifestFilePath = path.resolve(path.join(wwwPath, 'manifest.json'));
+    var contextPath = args.contextPath || '/';
 
     var startPage;
 
@@ -44,14 +50,25 @@ module.exports.run = function (args) {
         }
     }
 
-    var server = cordovaServe();
+    console.log(JSON.stringify(args))
+
+    if (contextPath !== '/') {
+        server.app.use(function(req, resp, next) {
+            if (req.url.indexOf(contextPath) === 0) {
+                req.url = req.url.substr(contextPath.length);
+            }
+            next();
+        });
+    }
+
     server.servePlatform('browser', {port: args.port, noServerInfo: true})
         .then(function () {
             if (!startPage) {
                 // failing all else, set the default
                 startPage = 'index.html';
             }
-            var projectUrl = url.resolve('http://localhost:' + server.port + '/', startPage);
+            var projectUrl = url.resolve('http://localhost:' + server.port + contextPath + '/', startPage);
+            console.log('contextPath = ' + contextPath);
             console.log('startPage = ' + startPage);
             console.log('Static file server running @ ' + projectUrl + '\nCTRL + C to shut down');
             return cordovaServe.launchBrowser({'target': args.target, 'url': projectUrl});
